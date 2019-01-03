@@ -9,10 +9,6 @@
 // commandline argumetns
 // shell commands
 
-/*
-						Not yet Encryption Added
-*/
-
 #include "pch.h"
 #include <iostream>
 #include <fstream>
@@ -22,17 +18,20 @@
 #include <unordered_map>
 #include <map>
 
+#include "modes.h"
+#include "aes.h"
+#include "filters.h"
+
 using namespace std;
 using namespace boost;
+using namespace CryptoPP;
 
 void RunShell();
-string readLine();
 void LookUp(const vector<string> & argsList, map<string, string> &);
 vector<string> splitLine(const string & line);
-void open(string filename, map<string, string> &);
+void open(const vector<string> & argsList, map<string, string> & entries);
 void list(map<string, string> &);
-void save(const string & filename, map<string, string> & entries);
-
+void save(const vector<string> & argsList, map<string, string> & entries);
 
 int main()
 {
@@ -43,7 +42,6 @@ int main()
 
 void RunShell()
 {
-	int x;
 	std::string line = "";
 	map<string, string> entries;
 
@@ -56,7 +54,6 @@ void RunShell()
 	} while (true);
 }
 
-// Splits arguments
 vector<string> splitLine(const string & line)
 {
 	char_separator<char> sep(" \n\t");
@@ -64,33 +61,47 @@ vector<string> splitLine(const string & line)
 	return vector<string>(tok.begin(), tok.end());
 }
 
-// put commands that are likely to be executed the most first.
 void LookUp(const vector<string> & argsList, map<string, string> & entries)
 {
-	unordered_map<string, int> hashTable = 
+	// Hash Strings
+	unordered_map<string, int> hashTable =
 	{
 		{"open", 1},
 		{"add",  2},
 		{"show", 3},
 		{"list", 3},
-		{"save", 4}
+		{"save", 4},
+		{"close", 5},
+		{"clear", 5}
 	};
 
 	switch (hashTable[argsList[0]])
 	{
-		case 1: open(argsList[1], entries); break;
-		case 2: entries[argsList[1]] = argsList[2];; break;
+		case 1: open(argsList, entries); break;
+		case 2: entries[argsList[1]] = argsList[2]; break;
 		case 3: ::list(entries); break;
-		case 4: save(argsList[1], entries); break;
-		default: cout << "Not recognized command" << endl; break;
+		case 4: save(argsList, entries); break;
+		case 5: entries.clear(); break; // Clear password in memory
+		default: cout << "Not recognized command" << endl;
 	}
-
 }
 
-void open(string filename, map<string, string> & entries)
+// Decrypt the file here.
+void open(const vector<string> & argsList, map<string, string> & entries)
 {
+	if (argsList.size() != 2)
+	{
+		cout << "Open command takes only three arguments" << endl;
+		return;
+	}
+
+	string password = "";
+	cout << "Master password: ";
+	std::getline(cin, password);
+	cout << "Your password is : " << password << endl;
+
 	ifstream database;
-	database.open(filename);
+	database.open(argsList[1]);
 	if (database.is_open())
 	{
 		string userName;
@@ -98,34 +109,25 @@ void open(string filename, map<string, string> & entries)
 
 		cout << "Password file is fed into memory." << endl;
 		while (database >> userName >> password)
-		{
 			entries[userName] = password;
-		}
-
+		
 		database.close();
 		return;
 	}
-	
 	cout << "File could not be opened" << endl;
 }
 
-void show(const map<string, string> & entries)
+// Encrypt the file here.
+void save(const vector<string> & argsList, map<string, string> & entries)
 {
-
-}
-
-void list(map<string, string> & entries)
-{
-	for (const auto & pair : entries)
+	if (entries.size() != 2)
 	{
-		cout << pair.first << '\t' << pair.second << endl;
+		cout << "Save command takes only two arguments" << endl;
+		return;
 	}
-}
 
-void save(const string & filename, map<string, string> & entries)
-{
 	ofstream database;
-	database.open(filename);
+	database.open(argsList[1]);
 	if (database.is_open())
 	{
 		cout << "Password file is saved" << endl;
@@ -139,4 +141,12 @@ void save(const string & filename, map<string, string> & entries)
 		return;
 	}
 	cout << "File could not be opened" << endl;
+}
+
+void list(map<string, string> & entries)
+{
+	for (const auto & pair : entries)
+	{
+		cout << pair.first << '\t' << pair.second << endl;
+	}
 }
