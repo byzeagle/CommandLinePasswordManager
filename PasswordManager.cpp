@@ -1,16 +1,6 @@
-// PasswordManager.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
-// Argument Parser
-// Database create
-// Set Password for database
-// Update password for database
-// Open database and read in information
-// commandline argumetns
-// shell commands
-
 #include "pch.h"
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -18,20 +8,19 @@
 #include <unordered_map>
 #include <map>
 
-#include "modes.h"
-#include "aes.h"
-#include "filters.h"
-
 using namespace std;
 using namespace boost;
 using namespace CryptoPP;
 
 void RunShell();
-void LookUp(const vector<string> & argsList, map<string, string> &);
-vector<string> splitLine(const string & line);
-void open(const vector<string> & argsList, map<string, string> & entries);
-void list(map<string, string> &);
-void save(const vector<string> & argsList, map<string, string> & entries);
+void LookUp(const vector<string> &, map<string, map<string, string>> &);
+vector<string> splitLine(const string &);
+void open(const vector<string> &, map<string, map<string, string>> &);
+void list(map<string, map<string, string>> &);
+void save(const vector<string> &, map<string, map<string, string>> &);
+void get(const vector<string> & argsList, map<string, map<string, string>> & entries);
+
+string openFileName = "";
 
 int main()
 {
@@ -43,7 +32,7 @@ int main()
 void RunShell()
 {
 	std::string line = "";
-	map<string, string> entries;
+	map<string, map<string, string>> entries;
 
 	do {
 		cout << "> ";
@@ -61,7 +50,7 @@ vector<string> splitLine(const string & line)
 	return vector<string>(tok.begin(), tok.end());
 }
 
-void LookUp(const vector<string> & argsList, map<string, string> & entries)
+void LookUp(const vector<string> & argsList, map<string, map<string, string>> & entries)
 {
 	// Hash Strings
 	unordered_map<string, int> hashTable =
@@ -70,24 +59,42 @@ void LookUp(const vector<string> & argsList, map<string, string> & entries)
 		{"add",  2},
 		{"show", 3},
 		{"list", 3},
+		{"l",	 3},
+		{"ls",   3},
 		{"save", 4},
 		{"close", 5},
-		{"clear", 5}
+		{"clear", 5},
+		{"get",   6}
 	};
 
 	switch (hashTable[argsList[0]])
 	{
 		case 1: open(argsList, entries); break;
-		case 2: entries[argsList[1]] = argsList[2]; break;
+		case 2: entries[argsList[1]][argsList[2]] = argsList[3]; break;
 		case 3: ::list(entries); break;
 		case 4: save(argsList, entries); break;
-		case 5: entries.clear(); break; // Clear password in memory
+		case 5: entries.clear(); openFileName = ""; break; // Clear password in memory
+		case 6: get(argsList, entries); break;
 		default: cout << "Not recognized command" << endl;
 	}
 }
 
+void get(const vector<string> & argsList, map<string, map<string, string>> & entries)
+{
+	if (argsList.size() != 2)
+	{
+		cout << "Get command takes only two arguments" << endl;
+		return;
+	}
+
+	for (const auto & pair : entries[argsList[1]])
+	{
+		cout << argsList[1] << "\t\t" << pair.first << "\t\t" << pair.second << '|' << endl;
+	}
+}
+
 // Decrypt the file here.
-void open(const vector<string> & argsList, map<string, string> & entries)
+void open(const vector<string> & argsList, map<string, map<string, string>> & entries)
 {
 	if (argsList.size() != 2)
 	{
@@ -95,21 +102,19 @@ void open(const vector<string> & argsList, map<string, string> & entries)
 		return;
 	}
 
-	string password = "";
-	cout << "Master password: ";
-	std::getline(cin, password);
-	cout << "Your password is : " << password << endl;
+	openFileName = argsList[1];
 
 	ifstream database;
 	database.open(argsList[1]);
 	if (database.is_open())
 	{
+		string website;
 		string userName;
 		string password;
 
-		cout << "Password file is fed into memory." << endl;
-		while (database >> userName >> password)
-			entries[userName] = password;
+		cout << "Password file \"" << openFileName << "\" is fed into memory." << endl;
+		while (database >> website >> userName >> password)
+			entries[website][userName] = password;
 		
 		database.close();
 		return;
@@ -118,7 +123,7 @@ void open(const vector<string> & argsList, map<string, string> & entries)
 }
 
 // Encrypt the file here.
-void save(const vector<string> & argsList, map<string, string> & entries)
+void save(const vector<string> & argsList, map<string, map<string, string>> & entries)
 {
 	if (entries.size() != 2)
 	{
@@ -132,9 +137,12 @@ void save(const vector<string> & argsList, map<string, string> & entries)
 	{
 		cout << "Password file is saved" << endl;
 		// Continue reading values from the file into the map
-		for (const auto & pair : entries)
+		for (const auto & outerPair : entries)
 		{
-			database << pair.first << " " << pair.second << '\n';
+			for (const auto & innerPair : outerPair.second)
+			{
+				database << outerPair.first << " " << innerPair.first << " " << innerPair.second << '\n';
+			}
 		}
 
 		database.close();
@@ -143,10 +151,16 @@ void save(const vector<string> & argsList, map<string, string> & entries)
 	cout << "File could not be opened" << endl;
 }
 
-void list(map<string, string> & entries)
+void list(map<string, map<string, string>> & entries)
 {
-	for (const auto & pair : entries)
+	cout << "Open file is : " << openFileName << endl;
+	cout << "-----------------------------------------------------------------------------" << endl;
+	for (const auto & outerPair : entries)
 	{
-		cout << pair.first << '\t' << pair.second << endl;
+		for (const auto & innerPair : outerPair.second)
+		{
+			cout << outerPair.first << "\t\t" << innerPair.first << "\t\t" << innerPair.second << '|' << endl;
+			cout << "-----------------------------------------------------------------------------" << endl;
+		}
 	}
 }
