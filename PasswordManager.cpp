@@ -1,12 +1,29 @@
+// PasswordManager.cpp : This file contains the 'main' function. Program execution begins and ends there.
+//
+
+// Argument Parser
+// Database create
+// Set Password for database
+// Update password for database
+// Open database and read in information
+// commandline argumetns
+// shell commands
+
 #include "pch.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <boost/tokenizer.hpp>
 #include <unordered_map>
 #include <map>
+#include <boost/tokenizer.hpp>
+
+
+#include "modes.h"
+#include "aes.h"
+#include "filters.h"
 
 using namespace std;
 using namespace boost;
@@ -19,6 +36,69 @@ void open(const vector<string> &, map<string, map<string, string>> &);
 void list(map<string, map<string, string>> &);
 void save(const vector<string> &, map<string, map<string, string>> &);
 void get(const vector<string> & argsList, map<string, map<string, string>> & entries);
+void add(const vector<string> & argsList, map<string, map<string, string>> & entries);
+
+void encode(string & data, string Skey, string & CipherText)
+{
+	byte key[AES::DEFAULT_KEYLENGTH];
+	memset(key, 0, AES::DEFAULT_KEYLENGTH);
+
+	byte iv[AES::DEFAULT_KEYLENGTH];
+	memset(iv, 0, AES::DEFAULT_KEYLENGTH);
+
+	int i{ 0 };
+
+	string theKey(Skey);
+	theKey.append("turken007326974!@#$%%");
+
+	while (i != 16)
+	{
+		key[i] = theKey[i];
+		iv[i] = theKey[i];
+		++i;
+	}
+
+	//Encryptor
+	ECB_Mode <AES>::Encryption Encryptor(key, sizeof(key));
+	//ECB_Mode <AES>::Encryption Encryptor(key, sizeof(key), iv);
+
+	StringSource(data, true,
+		new StreamTransformationFilter(Encryptor,
+			new StringSink(CipherText)
+		)
+	);
+}
+
+void decode(string CT, string Skey, string & RText)
+{
+	byte key[AES::DEFAULT_KEYLENGTH];
+	memset(key, 0, AES::DEFAULT_KEYLENGTH);
+
+	byte iv[AES::DEFAULT_KEYLENGTH];
+	memset(iv, 0, AES::DEFAULT_KEYLENGTH);
+
+	int i{ 0 };
+
+	string theKey(Skey);
+	theKey.append("turken007326974!@#$%%");
+
+	while (i != 16)
+	{
+		key[i] = theKey[i];
+		iv[i] = theKey[i];
+		++i;
+	}
+
+	//Decrpto
+	ECB_Mode <AES>::Decryption Decryptor(key, sizeof(key));
+	//ECB_Mode <AES>::Decryption Decryptor(key, sizeof(key), iv);
+
+	StringSource(CT, true,
+		new StreamTransformationFilter(Decryptor,
+			new StringSink(RText)
+		)
+	);
+}
 
 string openFileName = "";
 
@@ -79,6 +159,17 @@ void LookUp(const vector<string> & argsList, map<string, map<string, string>> & 
 	}
 }
 
+void add(const vector<string> & argsList, map<string, map<string, string>> & entries)
+{
+	if (argsList.size() != 4)
+	{
+		cout << "Add command has to take exactly 3 elements" << endl;
+		return;
+	}
+	string website = "", username = "", password = "";
+	entries[argsList[1]][argsList[2]] = argsList[3];
+}
+
 void get(const vector<string> & argsList, map<string, map<string, string>> & entries)
 {
 	if (argsList.size() != 2)
@@ -108,14 +199,24 @@ void open(const vector<string> & argsList, map<string, map<string, string>> & en
 	database.open(argsList[1]);
 	if (database.is_open())
 	{
-		string website;
-		string userName;
-		string password;
-
-		cout << "Password file \"" << openFileName << "\" is fed into memory." << endl;
-		while (database >> website >> userName >> password)
-			entries[website][userName] = password;
+		std::string content((std::istreambuf_iterator<char>(database)),
+			(std::istreambuf_iterator<char>()));
 		
+		string key = "";
+		string decryptedText = "";
+		cout << "Please enter a key : ";
+		getline(cin, key);
+
+		decode(content, key, decryptedText);
+		
+		stringstream inputStream (decryptedText);
+		string website = "";
+		string username = "";
+		string passwd = "";
+
+		while (inputStream >> username >> website >> passwd)
+			entries[username][website] = passwd;
+
 		database.close();
 		return;
 	}
@@ -125,7 +226,7 @@ void open(const vector<string> & argsList, map<string, map<string, string>> & en
 // Encrypt the file here.
 void save(const vector<string> & argsList, map<string, map<string, string>> & entries)
 {
-	if (entries.size() != 2)
+	if (argsList.size() != 2)
 	{
 		cout << "Save command takes only two arguments" << endl;
 		return;
@@ -133,19 +234,33 @@ void save(const vector<string> & argsList, map<string, map<string, string>> & en
 
 	ofstream database;
 	database.open(argsList[1]);
+
 	if (database.is_open())
 	{
+		stringstream res;
 		cout << "Password file is saved" << endl;
+
 		// Continue reading values from the file into the map
 		for (const auto & outerPair : entries)
-		{
 			for (const auto & innerPair : outerPair.second)
-			{
-				database << outerPair.first << " " << innerPair.first << " " << innerPair.second << '\n';
-			}
-		}
+				res << outerPair.first << " " << innerPair.first << " " << innerPair.second << '\n';
 
+		string finalString = res.str();
+		string encryptedString = "";
+		string key = "";
+
+		cout << "Please enter a key : ";
+		getline(cin, key);
+
+		// First Encode the string
+		encode(finalString, key, encryptedString);
+		
+		// Then Write encoded string.
+		database << encryptedString;
+
+		// Close the database
 		database.close();
+
 		return;
 	}
 	cout << "File could not be opened" << endl;
