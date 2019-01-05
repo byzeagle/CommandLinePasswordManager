@@ -1,4 +1,3 @@
-
 #include "pch.h"
 #include <iostream>
 #include <iomanip>
@@ -27,68 +26,8 @@ void list(map<string, map<string, string>> &);
 void save(const vector<string> &, map<string, map<string, string>> &);
 void get(const vector<string> & argsList, map<string, map<string, string>> & entries);
 void add(const vector<string> & argsList, map<string, map<string, string>> & entries);
-
-void encode(string & data, string Skey, string & CipherText)
-{
-	byte key[AES::DEFAULT_KEYLENGTH];
-	memset(key, 0, AES::DEFAULT_KEYLENGTH);
-
-	byte iv[AES::DEFAULT_KEYLENGTH];
-	memset(iv, 0, AES::DEFAULT_KEYLENGTH);
-
-	int i{ 0 };
-
-	string theKey(Skey);
-	theKey.append("turken007326974!@#$%%");
-
-	while (i != 16)
-	{
-		key[i] = theKey[i];
-		iv[i] = theKey[i];
-		++i;
-	}
-
-	//Encryptor
-	ECB_Mode <AES>::Encryption Encryptor(key, sizeof(key));
-	//ECB_Mode <AES>::Encryption Encryptor(key, sizeof(key), iv);
-
-	StringSource(data, true,
-		new StreamTransformationFilter(Encryptor,
-			new StringSink(CipherText)
-		)
-	);
-}
-
-void decode(string CT, string Skey, string & RText)
-{
-	byte key[AES::DEFAULT_KEYLENGTH];
-	memset(key, 0, AES::DEFAULT_KEYLENGTH);
-
-	byte iv[AES::DEFAULT_KEYLENGTH];
-	memset(iv, 0, AES::DEFAULT_KEYLENGTH);
-
-	int i{ 0 };
-
-	string theKey(Skey);
-	theKey.append("turken007326974!@#$%%");
-
-	while (i != 16)
-	{
-		key[i] = theKey[i];
-		iv[i] = theKey[i];
-		++i;
-	}
-
-	//Decrpto
-	ECB_Mode <AES>::Decryption Decryptor(key, sizeof(key));
-	//ECB_Mode <AES>::Decryption Decryptor(key, sizeof(key), iv);
-
-	StringSource(CT, true,
-		new StreamTransformationFilter(Decryptor,
-			new StringSink(RText)
-		)
-	);
-}
+void encode(string & data, string Skey, string & CipherText);
+void decode(string CT, string Skey, string & RText);
 
 string openFileName = "";
 
@@ -168,9 +107,12 @@ void get(const vector<string> & argsList, map<string, map<string, string>> & ent
 		return;
 	}
 
+	cout << "Open file is : " << openFileName << endl;
+	cout << "------------------------------------------------------------" << endl;
 	for (const auto & pair : entries[argsList[1]])
 	{
-		cout << argsList[1] << "\t\t" << pair.first << "\t\t" << pair.second << '|' << endl;
+		cout << std::left << std::setw(15) << argsList[1] << std::left << setw(25) << pair.first << std::left << setw(25) << pair.second << endl;
+		cout << "------------------------------------------------------------" << endl;
 	}
 }
 
@@ -267,4 +209,50 @@ void list(map<string, map<string, string>> & entries)
 			cout << "------------------------------------------------------------" << endl;
 		}
 	}
+}
+
+void encode(string & data, string Skey, string & CipherText)
+{
+	byte key[AES::DEFAULT_KEYLENGTH];
+	memset(key, 0, AES::DEFAULT_KEYLENGTH);
+
+	int i{ 0 };
+
+	string theKey(Skey);
+	theKey.append("turken007326974!@#$%%");
+
+	for(int i = 0; i < AES::DEFAULT_KEYLENGTH; ++i)
+		key[i] = theKey[i];
+
+	//Encryptor
+	ECB_Mode <AES>::Encryption Encryptor(key, sizeof(key));
+
+	StringSource(data, true,
+		new StreamTransformationFilter(Encryptor,
+			new StringSink(CipherText)
+		)
+	);
+}
+
+void decode(string CT, string Skey, string & RText)
+{
+	byte key[AES::DEFAULT_KEYLENGTH];
+	memset(key, 0, AES::DEFAULT_KEYLENGTH);
+
+	int i{ 0 };
+
+	string theKey(Skey);
+	theKey.append("turken007326974!@#$%%");
+
+	for (int i = 0; i < AES::DEFAULT_KEYLENGTH; ++i)
+		key[i] = theKey[i];
+
+	//Decrpto
+	ECB_Mode <AES>::Decryption Decryptor(key, sizeof(key));
+
+	StringSource(CT, true,
+		new StreamTransformationFilter(Decryptor,
+			new StringSink(RText)
+		)
+	);
 }
