@@ -1,4 +1,3 @@
-#include "pch.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -47,6 +46,7 @@ void RunShell()
 		cout << "> ";
 		std::getline(std::cin, line);
 		vector<string> inputs = splitLine(line);
+		if (inputs.empty()) continue;
 		if (inputs[0] == "exit" || inputs[0] == "quit") break;
 		LookUp(inputs, entries);
 	} while (true);
@@ -138,9 +138,9 @@ void open(const vector<string> & argsList, map<string, map<string, string>> & en
 		string decryptedText = "";
 		cout << "Please enter a key : ";
 		getline(cin, key);
-
-		decode(content, key, decryptedText);
 		
+		decode(content, key, decryptedText);
+
 		stringstream inputStream (decryptedText);
 		string website = "", username = "", passwd = "";
 
