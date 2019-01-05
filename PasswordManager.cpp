@@ -1,14 +1,3 @@
-// PasswordManager.cpp : This file contains the 'main' function. Program execution begins and ends there.
-//
-
-// Argument Parser
-// Database create
-// Set Password for database
-// Update password for database
-// Open database and read in information
-// commandline argumetns
-// shell commands
-
 #include "pch.h"
 #include <iostream>
 #include <iomanip>
@@ -19,7 +8,6 @@
 #include <unordered_map>
 #include <map>
 #include <boost/tokenizer.hpp>
-
 
 #include "modes.h"
 #include "aes.h"
@@ -196,11 +184,11 @@ void open(const vector<string> & argsList, map<string, map<string, string>> & en
 	openFileName = argsList[1];
 
 	ifstream database;
-	database.open(argsList[1]);
+	database.open(argsList[1], std::ios::binary);
 	if (database.is_open())
 	{
-		std::string content((std::istreambuf_iterator<char>(database)),
-			(std::istreambuf_iterator<char>()));
+		// Read the file at once
+		std::string content((std::istreambuf_iterator<char>(database)), (std::istreambuf_iterator<char>()));
 		
 		string key = "";
 		string decryptedText = "";
@@ -210,9 +198,7 @@ void open(const vector<string> & argsList, map<string, map<string, string>> & en
 		decode(content, key, decryptedText);
 		
 		stringstream inputStream (decryptedText);
-		string website = "";
-		string username = "";
-		string passwd = "";
+		string website = "", username = "", passwd = "";
 
 		while (inputStream >> username >> website >> passwd)
 			entries[username][website] = passwd;
@@ -233,12 +219,11 @@ void save(const vector<string> & argsList, map<string, map<string, string>> & en
 	}
 
 	ofstream database;
-	database.open(argsList[1]);
+	database.open(argsList[1], std::ios::binary);
 
 	if (database.is_open())
 	{
 		stringstream res;
-		cout << "Password file is saved" << endl;
 
 		// Continue reading values from the file into the map
 		for (const auto & outerPair : entries)
@@ -260,6 +245,8 @@ void save(const vector<string> & argsList, map<string, map<string, string>> & en
 
 		// Close the database
 		database.close();
+
+		cout << "Password file is saved" << endl;
 
 		return;
 	}
