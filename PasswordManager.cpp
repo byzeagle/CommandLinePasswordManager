@@ -1,3 +1,4 @@
+
 #include "pch.h"
 #include <iostream>
 #include <iomanip>
@@ -8,6 +9,7 @@
 #include <unordered_map>
 #include <map>
 #include <boost/tokenizer.hpp>
+
 
 #include "modes.h"
 #include "aes.h"
@@ -256,13 +258,13 @@ void save(const vector<string> & argsList, map<string, map<string, string>> & en
 void list(map<string, map<string, string>> & entries)
 {
 	cout << "Open file is : " << openFileName << endl;
-	cout << "-----------------------------------------------------------------------------" << endl;
+	cout << "------------------------------------------------------------" << endl;
 	for (const auto & outerPair : entries)
 	{
 		for (const auto & innerPair : outerPair.second)
 		{
-			cout << outerPair.first << "\t\t" << innerPair.first << "\t\t" << innerPair.second << '|' << endl;
-			cout << "-----------------------------------------------------------------------------" << endl;
+			cout << std::left << std::setw(15) << outerPair.first << std::left << setw(25) << innerPair.first << std::left << setw(25) << innerPair.second << endl;
+			cout << "------------------------------------------------------------" << endl;
 		}
 	}
 }
