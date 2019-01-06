@@ -1,3 +1,4 @@
+#include "pch.h"
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -107,6 +108,7 @@ void get(const vector<string> & argsList, map<string, map<string, string>> & ent
 		return;
 	}
 
+	cout << '\n';
 	cout << "Open file is : " << openFileName << endl;
 	cout << "------------------------------------------------------------" << endl;
 	for (const auto & pair : entries[argsList[1]])
@@ -199,6 +201,7 @@ void save(const vector<string> & argsList, map<string, map<string, string>> & en
 
 void list(map<string, map<string, string>> & entries)
 {
+	cout << '\n';
 	cout << "Open file is : " << openFileName << endl;
 	cout << "------------------------------------------------------------" << endl;
 	for (const auto & outerPair : entries)
