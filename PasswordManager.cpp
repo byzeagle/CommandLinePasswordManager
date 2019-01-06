@@ -9,7 +9,6 @@
 #include <map>
 #include <boost/tokenizer.hpp>
 
-
 #include "modes.h"
 #include "aes.h"
 #include "filters.h"
@@ -27,7 +26,7 @@ void save(const vector<string> &, map<string, map<string, string>> &);
 void get(const vector<string> & argsList, map<string, map<string, string>> & entries);
 void add(const vector<string> & argsList, map<string, map<string, string>> & entries);
 void encode(string & data, string Skey, string & CipherText);
-void decode(string CT, string Skey, string & RText);
+void decode(string CT, string Skey, string & RText, map<string, map<string, string>> & entries);
 
 string openFileName = "";
 
@@ -141,7 +140,7 @@ void open(const vector<string> & argsList, map<string, map<string, string>> & en
 		cout << "Please enter a key : ";
 		getline(cin, key);
 		
-		decode(content, key, decryptedText);
+		decode(content, key, decryptedText, entries);
 
 		stringstream inputStream (decryptedText);
 		string website = "", username = "", passwd = "";
@@ -237,7 +236,7 @@ void encode(string & data, string Skey, string & CipherText)
 	);
 }
 
-void decode(string CT, string Skey, string & RText)
+void decode(string CT, string Skey, string & RText, map<string, map<string, string>> & entries)
 {
 	byte key[AES::DEFAULT_KEYLENGTH];
 	memset(key, 0, AES::DEFAULT_KEYLENGTH);
@@ -252,10 +251,18 @@ void decode(string CT, string Skey, string & RText)
 
 	//Decrpto
 	ECB_Mode <AES>::Decryption Decryptor(key, sizeof(key));
-
-	StringSource(CT, true,
-		new StreamTransformationFilter(Decryptor,
-			new StringSink(RText)
-		)
-	);
+	try {
+		StringSource(CT, true,
+			new StreamTransformationFilter(Decryptor,
+				new StringSink(RText)
+			)
+		);
+	}
+	catch (...) {
+		cout << "Wrong Password!" << endl;
+		entries.clear();
+		RText = "";
+		openFileName = "";
+	}
 }
+
